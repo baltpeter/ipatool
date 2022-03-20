@@ -11,11 +11,21 @@ public protocol HTTPClientInterface {
     func send(_ request: HTTPRequest) async throws -> HTTPResponse
 }
 
-public final class HTTPClient: HTTPClientInterface {
-    private let session: URLSessionInterface
+extension HTTPClient: URLSessionDelegate {
+    // Disable certificate verification (and, importantly, certificate pinning for Apple domains), taken from: https://stackoverflow.com/a/59484010.
+    public func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        let urlCredential = URLCredential(trust: challenge.protectionSpace.serverTrust!)
+        completionHandler(.useCredential, urlCredential)
+    }
+}
+
+public final class HTTPClient: NSObject, HTTPClientInterface {
+    private var session: URLSessionInterface!
     
     public init(session: URLSessionInterface) {
-        self.session = session
+        super.init()
+        // self.session = session
+        self.session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
     }
 
     public func send(_ request: HTTPRequest) async throws -> HTTPResponse {

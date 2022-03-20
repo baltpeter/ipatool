@@ -85,6 +85,12 @@ extension HTTPDownloadClient: URLSessionDownloadDelegate {
             continuation?.resume(throwing: error)
         }
     }
+    
+    // Disable certificate verification (and, importantly, certificate pinning for Apple domains), taken from: https://stackoverflow.com/a/59484010.
+    public func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        let urlCredential = URLCredential(trust: challenge.protectionSpace.serverTrust!)
+        completionHandler(.useCredential, urlCredential)
+    }
 }
 
 extension HTTPDownloadClient {
