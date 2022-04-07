@@ -49,6 +49,9 @@ public final class StoreClient: StoreClientInterface {
                 throw Error.invalidResponse
             }
         }
+        else {
+            dump("Apple ID already owns this app, proceeding to download…")
+        }
 
         // …then download it.
         let downloadRequest = StoreRequest.download(

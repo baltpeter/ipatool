@@ -16,7 +16,10 @@ struct Download: AsyncParsableCommand {
     }
 
     @Option(name: [.short, .long], help: "The bundle identifier of the target iOS app.")
-    private var bundleIdentifier: String
+    private var bundleIdentifier: String?
+    
+    @Option(name: [.short, .long], help: "The adamId (numerical identifier) of the target iOS app.")
+    private var adamIdentifier: Int
 
     @Option(name: [.short, .customLong("email")], help: "The email address for the Apple ID.")
     private var emailArgument: String?
@@ -166,7 +169,7 @@ extension Download {
     }
     
     private mutating func item(
-        from app: iTunesResponse.Result,
+        from appIdentifier: Int,
         account: StoreResponse.Account
     ) async -> StoreResponse.Item {
         logger.log("Creating HTTP client...", level: .debug)
@@ -176,9 +179,9 @@ extension Download {
         let storeClient = StoreClient(httpClient: httpClient)
 
         do {
-            logger.log("Requesting a signed copy of '\(app.identifier)' from the App Store...", level: .info)
+            logger.log("Requesting a signed copy of '\(appIdentifier)' from the App Store...", level: .info)
             return try await storeClient.item(
-                identifier: "\(app.identifier)",
+                identifier: "\(appIdentifier)",
                 directoryServicesIdentifier: account.directoryServicesIdentifier,
                 passwordToken: account.passwordToken,
                 country: country
@@ -238,8 +241,8 @@ extension Download {
         }
     }
     
-    private mutating func makeOutputPath(app: iTunesResponse.Result) -> String {
-        let fileName: String = "/\(bundleIdentifier)_\(app.identifier)_v\(app.version)_\(Int.random(in: 100...999)).ipa"
+    private mutating func makeOutputPath(appIdentifier: Int) -> String {
+        let fileName: String = "/\(appIdentifier).ipa"
         
         guard let output = output else {
             return FileManager.default.currentDirectoryPath.appending(fileName)
@@ -263,8 +266,8 @@ extension Download {
     
     mutating func run() async throws {
         // Query for app
-        let app: iTunesResponse.Result = await app(with: bundleIdentifier, country: country)
-        logger.log("Found app: \(app.name) (\(app.version)).", level: .debug)
+        //let app: iTunesResponse.Result = await app(with: bundleIdentifier, country: country)
+        //logger.log("Found app: \(app.name) (\(app.version)).", level: .debug)
         
         // Get Apple ID email
         let email: String = email()
@@ -277,11 +280,11 @@ extension Download {
         logger.log("Authenticated as '\(account.firstName) \(account.lastName)'.", level: .info)
 
         // Query for store item
-        let item: StoreResponse.Item = await item(from: app, account: account)
+        let item: StoreResponse.Item = await item(from: adamIdentifier, account: account)
         logger.log("Received a response of the signed copy: \(item.md5).", level: .debug)
 
         // Generate file name
-        let path = makeOutputPath(app: app)
+        let path = makeOutputPath(appIdentifier: adamIdentifier)
         logger.log("Output path: \(path).", level: .debug)
 
         // Download app package
